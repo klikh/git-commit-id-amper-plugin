@@ -1,0 +1,6 @@
+modules:
+  - git-commit-id-amper-plugin
+  - example
+
+plugins:
+  - git-commit-id-amper-plugin

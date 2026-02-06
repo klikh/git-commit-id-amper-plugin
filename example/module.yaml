@@ -1,0 +1,7 @@
+product: jvm/app
+
+plugins:
+  git-commit-id-amper-plugin:
+    enabled: true
+    gitDirectory: ../git-commit-id-amper-plugin/testResources/testRepo/dotgit
+    propertiesFile: "git.props"

@@ -1,0 +1,8 @@
+tasks:
+  generateGitProperties:
+    action: !org.amper.gitcommitid.generateGitProperties
+      propertiesFile: ${taskOutputDir}/${pluginSettings.propertiesFile}
+      gitDirectory: ${pluginSettings.gitDirectory}
+    markOutputsAs:
+      - path: ${action.propertiesFile}
+        kind: jvm-resources
