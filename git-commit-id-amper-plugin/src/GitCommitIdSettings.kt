@@ -28,4 +28,10 @@ interface GitCommitIdSettings {
      */
     val propertiesFile: String get() = "git.properties"
 
+    /**
+     * The length of the abbreviated commit ID.
+     * By default, equals to 7.
+     */
+    val abbrevLength: Int get() = 7
+
 }

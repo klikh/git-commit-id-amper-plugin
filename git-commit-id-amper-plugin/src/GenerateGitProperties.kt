@@ -25,6 +25,7 @@ import kotlin.io.path.outputStream
 fun generateGitProperties(
     @Input gitDirectory: Path?,
     @Output propertiesFile: Path,
+    abbrevLength: Int,
 ) {
     val (gitDir, worktree) = if (gitDirectory == null) {
         val gitRoot = findGitRoot() ?: error("No git repository found")
@@ -33,7 +34,7 @@ fun generateGitProperties(
         gitDirectory to gitDirectory.parent
     }
 
-    val gitInfo = collectGitInfo(gitDir, worktree)
+    val gitInfo = collectGitInfo(gitDir, worktree, abbrevLength)
     val head = gitInfo.head
 
     val time = ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
@@ -56,7 +57,7 @@ fun generateGitProperties(
         setProperty("git.commit.author.time", head.authorIdent.timeAsString())
         setProperty("git.commit.committer.time", head.committerIdent.timeAsString())
         setProperty("git.commit.id", head.name())
-        setProperty("git.commit.id.abbrev", head.abbreviate(7).name())
+        setProperty("git.commit.id.abbrev", head.abbreviate(abbrevLength).name())
 
         setProperty("git.commit.id.describe", gitInfo.describeResult?.fullDescribeOutput.orEmpty())
         setProperty("git.commit.id.describe-short", gitInfo.describeResult?.shortDescribeOutput.orEmpty())
@@ -120,14 +121,13 @@ private data class GitInfo(
     val totalCommitsInHead: Int
 )
 
-private fun collectGitInfo(gitDir: Path, worktreeDir: Path): GitInfo {
+private fun collectGitInfo(gitDir: Path, worktreeDir: Path, abbrevLength: Int): GitInfo {
     val repo = RepositoryBuilder()
         .setWorkTree(worktreeDir.toFile())
         .setGitDir(gitDir.toFile())
         .build()
     val git = Git(repo)
-    // Current branch
-    val branch: String? = repo.getBranch()
+    val currentBranch: String? = repo.getBranch()
 
     val config = repo.config
     val userName = config.getString("user", null, "name")
@@ -137,7 +137,7 @@ private fun collectGitInfo(gitDir: Path, worktreeDir: Path): GitInfo {
     // we assume that there is at least one commit in the repo
     val headCommit = git.log().setMaxCount(1).call().first()
 
-    val describeResult = git.describeInfo()
+    val describeResult = git.describeInfo(abbrevLength)
 
     val status = git.status().call()
     val isDirty = !(status.isClean)
@@ -146,7 +146,7 @@ private fun collectGitInfo(gitDir: Path, worktreeDir: Path): GitInfo {
     val totalCommitsInHead = calcTotalCommitsInHead(git, headCommit)
 
     return GitInfo(
-        branch,
+        currentBranch,
         userName,
         userEmail,
         remoteOriginUrl,
@@ -196,11 +196,12 @@ fun tagsOnHeadAndContainingHead(git: Git, headCommit: RevCommit): Pair<List<Stri
     return tagsOnHead to tagsContainingHead
 }
 
-private fun Git.describeInfo(): DescribeResult? {
+private fun Git.describeInfo(abbrevLength: Int): DescribeResult? {
     val fullDescribeOutput = describe()
         .setLong(true)
         .setTags(true)
         .setAlways (true)
+        .setAbbrev(abbrevLength)
         .call()
     // If describe == "v1.2.3"  -> nearest tag is "v1.2.3"
     // If describe == "v1.2.3-5-gabc1234" -> nearest tag is "v1.2.3"
@@ -212,7 +213,8 @@ private fun Git.describeInfo(): DescribeResult? {
     val shortDescribeOutput = describe()
         .setLong(false)
         .setTags(true)
-        .setAlways (true)
+        .setAlways(true)
+        .setAbbrev(abbrevLength)
         .call()
     return DescribeResult(tag, number, fullDescribeOutput, shortDescribeOutput)
 }
