@@ -23,18 +23,17 @@ import kotlin.io.path.outputStream
     ExecutionAvoidance.Disabled
 )
 fun generateGitProperties(
-    @Input gitDirectory: Path?,
+    @Input settings: GitCommitIdSettings,
     @Output propertiesFile: Path,
-    abbrevLength: Int,
 ) {
-    val (gitDir, worktree) = if (gitDirectory == null) {
+    val (gitDir, worktree) = if (settings.gitDirectory == null) {
         val gitRoot = findGitRoot() ?: error("No git repository found")
         gitRoot / ".git" to gitRoot
     } else {
-        gitDirectory to gitDirectory.parent
+        settings.gitDirectory!! to settings.gitDirectory!!.parent
     }
 
-    val gitInfo = collectGitInfo(gitDir, worktree, abbrevLength)
+    val gitInfo = collectGitInfo(gitDir, worktree, settings.abbrevLength)
     val head = gitInfo.head
 
     val time = ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
@@ -57,7 +56,7 @@ fun generateGitProperties(
         setProperty("git.commit.author.time", head.authorIdent.timeAsString())
         setProperty("git.commit.committer.time", head.committerIdent.timeAsString())
         setProperty("git.commit.id", head.name())
-        setProperty("git.commit.id.abbrev", head.abbreviate(abbrevLength).name())
+        setProperty("git.commit.id.abbrev", head.abbreviate(settings.abbrevLength).name())
 
         setProperty("git.commit.id.describe", gitInfo.describeResult?.fullDescribeOutput.orEmpty())
         setProperty("git.commit.id.describe-short", gitInfo.describeResult?.shortDescribeOutput.orEmpty())
