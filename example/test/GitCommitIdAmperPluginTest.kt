@@ -1,19 +1,20 @@
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import kotlin.io.path.*
+import kotlin.io.path.ExperimentalPathApi
+import kotlin.io.path.Path
+import kotlin.io.path.div
+import kotlin.io.path.readText
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 class GitCommitIdAmperPluginTest {
     @OptIn(ExperimentalPathApi::class)
     @Test
     fun test() {
-        val fileName = "git.props"
-        val actualGitProperties = (Path("..") / "build" / "artifacts" / "CompiledJvmArtifact" / "examplejvm" / "resources-output" / fileName).absolute().normalize()
-        assertTrue(actualGitProperties.exists()) {
-            "$actualGitProperties file not generated"
-        }
+        val actualPropertiesStream = GitCommitIdAmperPluginTest::class.java.classLoader.getResourceAsStream("git.props")
+        assertNotNull(actualPropertiesStream, "git.props not found in classpath")
+        val actualProperties = actualPropertiesStream.reader().readText().sanitizeDate()
         val expectedGitProperties = Path("..") / "git-commit-id-amper-plugin" / "testResources" / "expected.git.properties"
-        assertEquals(expectedGitProperties.readText().sanitizeDate(), actualGitProperties.readText().sanitizeDate())
+        assertEquals(expectedGitProperties.readText().sanitizeDate(), actualProperties)
     }
 
     private fun String.sanitizeDate() = this
